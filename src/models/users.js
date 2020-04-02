@@ -15,8 +15,9 @@ const userSchema = new mongoose.Schema({
         type : String,  
         unique : true,
         required : true,   
-        trim : true,  
-        default : 'joedoe@mail.com',
+        trim : true,   
+        lowercase : true,
+        //default : 'joedoe@mail.com',
         validate(value) {  
             if(!validator.isEmail(value)) { 
                 throw new Error('Invalid Email entered')
@@ -45,7 +46,7 @@ const userSchema = new mongoose.Schema({
             if (value.length <= 6) { 
                 throw new Error('your password is too short!')
             } 
-            else if (value.toLowerCase().includes('password')) { 
+            else if (value.includes('password')) { 
                 throw new Error('Your password cannot contain the word password')
             } 
            
@@ -58,7 +59,6 @@ const userSchema = new mongoose.Schema({
 
 userSchema.statics.findByCredentials = async (email, password) => {
     const user = await User.findOne({ email })
-
     if (!user) {
         throw new Error('Unable to login')
     }
@@ -69,7 +69,7 @@ userSchema.statics.findByCredentials = async (email, password) => {
         throw new Error('Unable to login')
     }
 
-    return user
+    return user 
 }
 
 // Hash the plain text password before saving

@@ -60,7 +60,8 @@ router.get('/users/:id', async (req, res) => {
             }
             res.status(200).send(user)
 
-        } catch (e) { 
+        } catch (e) {  
+            res.status(500).send(e)
 
         }
   // User.findById(_id).then((user) => {  
