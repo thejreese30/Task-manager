@@ -1,7 +1,8 @@
 const mongoose = require('mongoose')  
 const validator = require('validator') 
 const bcrypt = require('bcryptjs')  
-const uniqueValidator = require('mongoose-unique-validator')
+const uniqueValidator = require('mongoose-unique-validator') 
+const jwt = require('jsonwebtoken')
 
 const userSchema = new mongoose.Schema({ 
     name : { 
@@ -40,22 +41,48 @@ const userSchema = new mongoose.Schema({
         type : String, 
         required : true,   
         trim : true,  
-        lowercase : true, 
         minlength : 7,
         validate(value) { 
-            if (value.length <= 6) { 
-                throw new Error('your password is too short!')
-            } 
-            else if (value.includes('password')) { 
+            // if (value.length <= 6) { 
+            //     throw new Error('your password is too short!')
+            // }  
+            //else
+             if (value.toLowerCase().includes('password')) { 
                 throw new Error('Your password cannot contain the word password')
             } 
            
         }
-
-
-    }
     
-})   
+    }, 
+    tokens : [{ 
+        token : { 
+            type: String,
+            required : true
+        }
+    }]
+    
+})      
+
+//the below code doesnt work, find out why 
+
+// userSchema.methods.toJSON = async function () {  
+//     const user = this 
+//     const userObject = user.toObject()
+    
+//     delete userObject.password 
+//     delete userObject.tokens 
+
+//     return userObject.name
+
+// }
+
+userSchema.methods.generateAuthToken = async function () { 
+    const user = this 
+    const token = jwt.sign({_id : user._id.toString()}, 'thisis')  
+    user.tokens = user.tokens.concat({ token }) 
+    await user.save()
+    return token
+}
 
 userSchema.statics.findByCredentials = async (email, password) => {
     const user = await User.findOne({ email })
@@ -66,9 +93,9 @@ userSchema.statics.findByCredentials = async (email, password) => {
     const isMatch = await bcrypt.compare(password, user.password)
 
     if (!isMatch) {
-        throw new Error('Unable to login')
-    }
+        throw new Error('Unable to login') 
 
+    }
     return user 
 }
 
