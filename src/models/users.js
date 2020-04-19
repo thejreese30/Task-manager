@@ -2,8 +2,8 @@ const mongoose = require('mongoose')
 const validator = require('validator') 
 const bcrypt = require('bcryptjs')  
 const uniqueValidator = require('mongoose-unique-validator') 
-const jwt = require('jsonwebtoken')
-
+const jwt = require('jsonwebtoken') 
+const Task = require('./tasks')
 const userSchema = new mongoose.Schema({ 
     name : { 
         type : String, 
@@ -53,32 +53,49 @@ const userSchema = new mongoose.Schema({
            
         }
     
-    }, 
+    },    
+
     tokens : [{ 
         token : { 
             type: String,
             required : true
         }
-    }]
+    }],
+
+    avatar : { 
+        type : Buffer
+    }, 
     
-})      
+},  
+
+{ 
+    timestamps : true
+} 
+)       
+
+userSchema.virtual('tasks', { 
+    ref : 'Task',
+    localField : '_id',
+    foreignField : 'owner'
+})
 
 //the below code doesnt work, find out why 
 
-// userSchema.methods.toJSON = async function () {  
-//     const user = this 
-//     const userObject = user.toObject()
+userSchema.methods.toJSON = function () {  
+    const user = this 
+     const userObject = user.toObject()
     
-//     delete userObject.password 
-//     delete userObject.tokens 
+    delete userObject.password 
+    delete userObject.tokens  
+    delete userObject.avatar
 
-//     return userObject.name
+    return userObject
 
-// }
+}
 
 userSchema.methods.generateAuthToken = async function () { 
     const user = this 
-    const token = jwt.sign({_id : user._id.toString()}, 'thisis')  
+    const token = jwt.sign({_id : user._id.toString()}, process.env.JWT_SECRET)  
     user.tokens = user.tokens.concat({ token }) 
     await user.save()
     return token
@@ -108,7 +125,14 @@ userSchema.pre('save', async function (next) {
     }
 
     next()
-}) 
+})  
+
+userSchema.pre('remove', async function (next) {  
+    const user = this 
+    await Task.deleteMany({ owner : user._id }) //maybe try removing underscore from id
+    next()
+
+})
 
 userSchema.plugin(uniqueValidator)
 
